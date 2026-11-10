@@ -1,0 +1,50 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: ['main'] # alebo 'master' podľa vášho default branchu
+  workflow_dispatch:
+
+# Oprávnenia potrebné pre zápis na GitHub Pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: 'pages'
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repozitára
+        uses: actions/checkout@v4
+
+      - name: Nastavenie Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Inštalácia závislostí
+        run: npm ci
+
+      - name: Spustenie testov
+        run: npm test -- --run
+
+      - name: Zostavenie projektu (Build)
+        run: npm run build
+
+      - name: Nahratie Pages artefaktu
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: './dist'
+
+      - name: Nasadenie na GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
